@@ -1,18 +1,14 @@
 {
-    "name": "xrow\/activedirectory-bundle",
-    "type": "symfony-bundle",
-    "homepage": "symfony-bundle",
-    "license": "Apache License 2.0",
-    "authors": {
-        "name": "xrow GmbH",
-        "homepage": "http:\/\/www.xrow.com"
-    },
-    "require": {
-        "php": "~5.5|~7.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Xrow\\ActiveDirectoryBundle\\": ""
-        }
-    }
+	"name" : "xrow/activedirectory-bundle",
+	"type" : "symfony-bundle",
+	"homepage" : "symfony-bundle",
+	"license" : "Apache License 2.0",
+	"require" : {
+		"php" : "~5.5|~7.0"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"Xrow\\ActiveDirectoryBundle\\" : ""
+		}
+	}
 }

@@ -1,4 +1,19 @@
+parameters:
+    active_directory.interactive_event_listener.class: Xrow\ActiveDirectoryBundle\EventListener\InteractiveLoginListener
+    active_directory.security.authentication.provider.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
+
+
+    security.authentication.provider.dao.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
+    ezpublish.security.user_provider.class: Xrow\ActiveDirectoryBundle\Security\UserProvider
+
 services:
-#    xrow_active_directory.example:
-#        class: Xrow\ActiveDirectoryBundle\Example
-#        arguments: ["@service_id", "plain_value", "%parameter%"]
+#    active_directory.security.authentication.provider:
+#        class: "%active_directory.security.authentication.provider.class%"
+#        arguments:
+#            - "@ezpublish.security.user_provider"
+#        public: false
+    active_directory.interactive_event_listener:
+        class: "%active_directory.interactive_event_listener.class%"
+        arguments: [ "@ezpublish.api.service.user" ]
+        tags:
+            - { name: kernel.event_subscriber }
