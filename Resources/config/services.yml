@@ -2,7 +2,7 @@ parameters:
     active_directory.interactive_event_listener.class: Xrow\ActiveDirectoryBundle\EventListener\InteractiveLoginListener
     active_directory.security.authentication.provider.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
 
-
+    active_directory.security.user.remoteuser_handler.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
     security.authentication.provider.dao.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
     ezpublish.security.user_provider.class: Xrow\ActiveDirectoryBundle\Security\UserProvider
 
@@ -17,3 +17,14 @@ services:
         arguments: [ "@ezpublish.api.service.user" ]
         tags:
             - { name: kernel.event_subscriber }
+
+    my.ldap_auth.remoteuser_handler:
+        class: "%active_directory.security.user.remoteuser_handler.class%"
+        arguments:
+            - "@ezpublish.api.repository"
+            -
+                user_contenttype: user
+                default_content_language: eng-GB
+                group_mapping:
+                    "CN=LTD_Intranet_Administrator": 12
+                    "CN=LTD_Intranet_CorpContentManager": 13
