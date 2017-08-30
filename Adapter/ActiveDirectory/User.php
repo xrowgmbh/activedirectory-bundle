@@ -38,7 +38,7 @@ class User implements UserInterface
     {
         $this->username = $login;
         $this->password = $password;
-        $this->profile = $this->ldap2array($authUserResult);
+        $this->profile = $authUserResult;
     }
 
     /**
@@ -57,37 +57,6 @@ class User implements UserInterface
     public function getEmail()
     {
         return $this->profile['mail'];
-    }
-
-    /**
-     * Transforms the data received from an LDAP query into a more 'normal' php array by removing redundant stuff.
-     * NB: assumes a well-formed array
-     *
-     * @param array $data
-     * @return array
-     *
-     * @todo return a stdclass object instead ?
-     */
-    protected function ldap2array($data) {
-        //return $data;
-        foreach($data as $key => $value) {
-            if ($key === 'dn') {
-                continue;
-            }
-            if (is_int($key) || $key === 'count') {
-                unset($data[$key]);
-                continue;
-            }
-            if ($value['count'] === 1) {
-                $data[$key] = $value[0];
-                continue;
-            }
-            if ($value['count'] > 1) {
-                unset($data[$key]['count']);
-                continue;
-            }
-        }
-        return $data;
     }
 
     public function getProfile()
@@ -127,6 +96,11 @@ class User implements UserInterface
     }
     
     
+    public function getRemoteIdFromProfile()
+    {
+        return \Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandler::REMOTEID_PREFIX . self::getTextSID($this->profile['objectguid']);
+    }
+    
     /**
      * Removes sensitive data from the user.
      *
@@ -135,5 +109,53 @@ class User implements UserInterface
      */
     public function eraseCredentials()
     {
+    }
+    /**
+     * Converts a string GUID to a hexdecimal value so it can be queried.
+     *
+     * @param string $strGUID A string representation of a GUID
+     *
+     * @return string
+     */
+    static function strGuidToHex($strGUID)
+    {
+        $strGUID = str_replace('-', '', $strGUID);
+        $octet_str = '\\'.substr($strGUID, 6, 2);
+        $octet_str .= '\\'.substr($strGUID, 4, 2);
+        $octet_str .= '\\'.substr($strGUID, 2, 2);
+        $octet_str .= '\\'.substr($strGUID, 0, 2);
+        $octet_str .= '\\'.substr($strGUID, 10, 2);
+        $octet_str .= '\\'.substr($strGUID, 8, 2);
+        $octet_str .= '\\'.substr($strGUID, 14, 2);
+        $octet_str .= '\\'.substr($strGUID, 12, 2);
+        $length = (strlen($strGUID) - 2);
+        for ($i = 16; $i <= $length; $i++) {
+            if (($i % 2) == 0) {
+                $octet_str .= '\\'.substr($strGUID, $i, 2);
+            }
+        }
+        return $octet_str;
+    }
+    /**
+     * Convert a binary SID to a text SID.
+     *
+     * @param string $binsid A Binary SID
+     *
+     * @return string
+     */
+    static function getTextSID($binsid)
+    {
+        $hex_sid = bin2hex($binsid);
+        $rev = hexdec(substr($hex_sid, 0, 2));
+        $subcount = hexdec(substr($hex_sid, 2, 2));
+        $auth = hexdec(substr($hex_sid, 4, 12));
+        $result = "$rev-$auth";
+        $subauth = [];
+        for ($x = 0;$x < $subcount; $x++) {
+            $subauth[$x] = hexdec($this->littleEndian(substr($hex_sid, 16 + ($x * 8), 8)));
+            $result .= '-'.$subauth[$x];
+        }
+        // Cheat by tacking on the S-
+        return 'S-'.$result;
     }
 }

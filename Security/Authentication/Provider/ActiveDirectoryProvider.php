@@ -14,10 +14,13 @@ use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Ldap\LdapClient;
 use Xrow\ActiveDirectoryBundle\Adapter\LDAP\Client;
+use Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandlerInterface;
 
 class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implements AuthenticationProviderInterface
 {
     private $userProvider;
+    private $userHandler;
+    const REMOTEID_PREFIX = "ActiveDirectory";
     /**
      * @var \eZ\Publish\API\Repository\Repository
      */
@@ -27,10 +30,15 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
     {
         $this->repository = $repository;
     }
+    public function setUserHandler( RemoteUserHandlerInterface $userHandler )
+    {
+        $this->userHandler = $userHandler;
+    }
     
-    public function __construct(UserProviderInterface $userProvider)
+    public function __construct( UserProviderInterface $userProvider )
     {
         $this->userProvider = $userProvider;
+
     }
     /**
      * @param UsernamePasswordToken $token
@@ -51,38 +59,44 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
             
             /// @todo !important might want to throw AuthenticationCredentialsNotFoundException instead?
             if ('' === ($presentedUsername = $token->getUsername())) {
-                throw new BadCredentialsException('The presented email cannot be empty.');
+                throw new BadCredentialsException('The presented username cannot be empty.');
             }
             
             if ('' === ($presentedPassword = $token->getCredentials())) {
                 throw new BadCredentialsException('The presented password cannot be empty.');
             }
-            var_dump($presentedUsername);
-            var_dump($presentedPassword);
-            $client = new LdapClient("dc01.xrow.lan");
-            $this->client = new Client($client, array(
-                'search_dn' => 'XROW' . "\\" . $presentedUsername,
-                'base_dn' => 'dc=XROW,dc=LAN',
-                'search_password' => $presentedPassword
-            ));
-            $user = $this->client->AuthenticateUser($presentedUsername, $presentedPassword);
+
+            $config = [
+                // Your account suffix, for example: jdoe@corp.acme.org
+                'account_suffix'        => '@xrow.lan',
+                
+                // The domain controllers option is an array of your LDAP hosts. You can
+                // use the either the host name or the IP address of your host.
+                'domain_controllers'    => ['dc01.xrow.lan', '192.168.0.220'],
+                
+                // The base distinguished name of your domain.
+                'base_dn'               => 'dc=XROW,dc=LAN'
+            ];
+            $client = new \Adldap\Adldap();
+            $client->addProvider($config);
             
+            $this->client = new Client($client);
+
             // communication errors and config errors should be logged/handled by the client
             try {
-                
-                $user = $this->client->AuthenticateUser($presentedUsername, $presentedPassword);
-                // the client should return a UserInterface, no need for us to use a userProvider
-                //$user = $this->userProvider->loadUserByUsername($username);
-                return $user;
-                
+                $user = $this->client->authenticateUser($presentedUsername, $presentedPassword);
             } catch(\Exception $e) {
                 throw new BadCredentialsException('The presented username or password is invalid.');
             }
             
-            // no need to check the password after loading the user: the remote ws does that
-            /*if (!$this->encoderFactory->getEncoder($user)->isPasswordValid($user->getPassword(), $presentedPassword, $user->getSalt())) {
-             throw new BadCredentialsException('The presented password is invalid.');
-             }*/
+
+            try {
+                $apiUser = $this->repository->getUserService()->loadUserByLogin( $presentedUsername . '@xrow.lan' );
+            } catch(\Exception $e) {
+                return $this->userHandler->createRepoUser($user);
+            }
+            $apiUser = $this->userHandler->updateRepoUser($user, $apiUser);
+            return $apiUser;
         }
     }
     
@@ -103,6 +117,13 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         
         return $roles;
     }
+    private function isValidActiveDirectoryUser( $apiUser ){
+        $remoteid = $apiUser->getVersionInfo()->getContentInfo()->remoteId;
+        preg_match('@^(ActiveDirectory):(.+)@i', $remoteid, $test);
+        if (isset($test[1]) and $test[1] === "ActiveDirectory" ){
+            return true;
+        }
+    }
     public function authenticate( TokenInterface $token )
     {
         // $currentUser can either be an instance of UserInterface or just the username (e.g. during form login).
@@ -110,34 +131,33 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         $currentUser = $token->getUser();
 
         try {
-            $apiUser = $this->repository->getUserService()->loadUserByLogin( $token->getUsername() );
-        } catch ( \Exception $e) {
-            $apiUser = $this->tryActiveDirectoryImport( $token );
-        }
-        if (!isset($apiUser)){
-            throw new UsernameNotFoundException('Invalid username', 0, $e);
-        }
-        #$remoteid = $apiUser->getVersionInfo()->getContentInfo()->remoteId;
-        #preg_match('@^(ActiveDirectory):([^:]+):([^:]+):(.+)@i', $remoteid, $test);
-        #if (isset($test[1]) and $test[1] === "ActiveDirectory" ){
-        #    $this->tryActiveDirectoryImport( $token );
-        #}
+            $apiUser = $this->repository->getUserService()->loadUserByLogin( $token->getUsername() . '@xrow.lan' );
+            
+            if($this->isValidActiveDirectoryUser($apiUser)){
+                $apiUser = $this->tryActiveDirectoryImport( $token );
+            }else{
+                throw new UsernameNotFoundException('Invalid directory user', 0, $e);
+            }
+        } catch (NotFoundException $e) {
+            try {
+                $apiUser = $this->repository->getUserService()->loadUserByCredentials($token->getUsername(), $token->getCredentials());
+            } catch (\Exception $e) {
+                throw new BadCredentialsException('Invalid credentials', 0, $e);
+            }
+        } catch (UsernameNotFoundException $e) {
+            throw new UsernameNotFoundException('Invalid directory user', 0, $e);
+        } 
+
 
         if ($currentUser instanceof UserInterface) {
             if ($currentUser->getAPIUser()->passwordHash !== $user->getAPIUser()->passwordHash) {
                 throw new BadCredentialsException('The credentials were changed from another session.');
             }
             $apiUser = $currentUser->getAPIUser();
-        } else {
-            try {
-                $apiUser = $this->repository->getUserService()->loadUserByCredentials($token->getUsername(), $token->getCredentials());
-            } catch (NotFoundException $e) {
-                throw new BadCredentialsException('Invalid credentials', 0, $e);
-            }
-        }
+        } 
         
         
-        #var_dump($apiUser);die("here");
+        
         // Finally inject current user 
         $permissionResolver = $this->repository->getPermissionResolver();
         $apiUser = $this->repository->getUserService()->loadUserByLogin( "admin" );

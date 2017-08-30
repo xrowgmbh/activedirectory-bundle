@@ -22,15 +22,21 @@ class SecurityPass implements CompilerPassInterface
     public function process(ContainerBuilder $container)
     {
 
+        $userhandlerRef = new Reference('active_directory.remoteuser_handler');
         $configResolverRef = new Reference('ezpublish.config.resolver');
         $repositoryReference = new Reference('ezpublish.api.repository');
         
         // Override and inject the ez Platform default authentication provider https://github.com/ezsystems/ezpublish-kernel/blob/master/eZ/Bundle/EzPublishCoreBundle/DependencyInjection/Compiler/SecurityPass.php.
         $daoAuthenticationProviderDef = $container->findDefinition('security.authentication.provider.dao');
         $daoAuthenticationProviderDef->setClass(AuthenticationProvider::class);
+        #$daoAuthenticationProviderDef->addArgument($userhandlerRef);
         $daoAuthenticationProviderDef->addMethodCall(
             'setRepository',
             array($repositoryReference)
+            );
+        $daoAuthenticationProviderDef->addMethodCall(
+            'setUserHandler',
+            array($userhandlerRef)
             );
     }
 }
