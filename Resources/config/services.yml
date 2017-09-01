@@ -3,7 +3,7 @@ parameters:
     active_directory.security.authentication.provider.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
     active_directory.security.user.remoteuser_handler.class: Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandler
     security.authentication.provider.dao.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
-    ezpublish.security.user_provider.class: Xrow\ActiveDirectoryBundle\Security\UserProvider
+    security.authentication.manager.erase_credentials: false
 
 services:
 #    active_directory.security.authentication.provider:

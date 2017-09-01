@@ -16,6 +16,10 @@ use Symfony\Component\Ldap\LdapClient;
 use Xrow\ActiveDirectoryBundle\Adapter\LDAP\Client;
 use Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandlerInterface;
 use eZ\Publish\Core\Base\Exceptions\NotFoundException;
+use Xrow\ActiveDirectoryBundle\Adapter\ActiveDirectory\User;
+use eZ\Publish\Core\MVC\Symfony\Security\InteractiveLoginToken;
+use eZ\Publish\Core\MVC\Symfony\Security\UserWrapped;
+use eZ\Publish\Core\Repository\Values\User\UserReference;
 
 class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implements AuthenticationProviderInterface
 {
@@ -93,10 +97,11 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         try {
             $apiUser = $this->repository->getUserService()->loadUserByLogin($presentedUsername . '@xrow.lan');
         } catch (\Exception $e) {
-            return $this->userHandler->createRepoUser($user);
+             $RepoUser = $this->userHandler->createRepoUser($user);
+             return new UserWrapped ( new User($user, $presentedUsername, $presentedPassword), $RepoUser);
         }
-        $apiUser = $this->userHandler->updateRepoUser($user, $apiUser);
-        return $apiUser;
+        $RepoUser = $this->userHandler->updateRepoUser($user, $apiUser);
+        return new UserWrapped( new User($user, $presentedUsername, $presentedPassword), $RepoUser );
     }
 
     /**
@@ -131,10 +136,14 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         // $currentUser can either be an instance of UserInterface or just the username (e.g. during form login).
         /** @var EzUserInterface|string $currentUser */
         $currentUser = $token->getUser();
+        if ($currentUser instanceof UserInterface) {
+            return $currentUser;
+        }
+
         try {
-            $apiUserNative = $this->repository->getUserService()->loadUserByLogin($token->getUsername());
+            $UserNative = $this->repository->getUserService()->loadUserByLogin($token->getUsername());
         } catch (NotFoundException $e) {
-            $apiUserNative = false;
+            $UserNative = false;
         }
         try {
             $ADUser = $this->repository->getUserService()->loadUserByLogin($token->getUsername() . '@xrow.lan');
@@ -146,30 +155,32 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         $apiUser = false;
         if ($ADUser and $this->isValidActiveDirectoryUser($ADUser)) {
             try {
-                $apiUser = $this->tryActiveDirectoryImport($token);
+                $UserWrapped = $this->tryActiveDirectoryImport($token);
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid directory user', 0, $e);
             }
         } else {
             try {
-                $apiUser = $this->tryActiveDirectoryImport($token);
-            } catch (NotFoundException $e) {
-                if (! $apiUserNative) {
+                $UserWrapped = $this->tryActiveDirectoryImport($token);
+            } catch (\Exception $e) {
+                if (! $UserNative) {
                     throw new BadCredentialsException('Invalid directory user', 0, $e);
                 }
                 // go on with native users
             }
         }
         // Try normal login
-        if (! $apiUser and $apiUserNative) {
+        if (! $apiUser and $UserNative) {
             try {
                 $apiUser = $this->repository->getUserService()->loadUserByCredentials($token->getUsername(), $token->getCredentials());
+                $UserWrapped = new UserWrapped( $apiUser, $UserNative);
+                
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid credentials', 0, $e);
             }
         }
         // Can`t find the user anywhere
-        if (! $apiUser) {
+        if (! $UserWrapped ) {
             throw new UsernameNotFoundException('Invalid directory user', 0, $e);
         }
         
@@ -181,10 +192,21 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         }
         
         // Finally inject current user
-        #$permissionResolver = $this->repository->getPermissionResolver();
-        #$permissionResolver->setCurrentUserReference($apiUser);
-        $this->repository->setCurrentUser($apiUser);
-        return new \eZ\Publish\Core\MVC\Symfony\Security\User($apiUser);
+        $permissionResolver = $this->repository->getPermissionResolver();
+        $UserReference = new UserReference( $UserWrapped->getAPIUser()->id );
+        $permissionResolver->setCurrentUserReference( $UserReference );
+
+        $providerKey = method_exists($token, 'getProviderKey') ? $token->getProviderKey() : __CLASS__;
+        $interactiveToken = new InteractiveLoginToken(
+            $UserWrapped,
+            get_class($token),
+            $token->getCredentials(),
+            $providerKey,
+            $token->getRoles()
+            );
+        $interactiveToken->setAttributes($token->getAttributes());
+        
+        return $interactiveToken;
     }
 
     public function supports(TokenInterface $token)

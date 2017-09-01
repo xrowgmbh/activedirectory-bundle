@@ -31,17 +31,9 @@ class InteractiveLoginListener implements EventSubscriberInterface
     public function onInteractiveLoginSymfony( InteractiveLoginEvent $event )
     {
         var_dump($event->getAuthenticationToken());
-        die("Symfony hererer");
-        // We just load a generic user and assign it back to the event.
-        // You may want to create users here, or even load predefined users depending on your own rules.
-        $event->setApiUser( $this->userService->loadUserByLogin( 'lolautruche' ) );
     }
     public function onInteractiveLogin( InteractiveLoginEvent $event )
     {
         var_dump($event->getAuthenticationToken());
-        die("eZ hererer");
-        // We just load a generic user and assign it back to the event.
-        // You may want to create users here, or even load predefined users depending on your own rules.
-        $event->setApiUser( $this->userService->loadUserByLogin( 'lolautruche' ) );
     }
 } 
