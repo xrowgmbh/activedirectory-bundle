@@ -51,7 +51,7 @@ class Client implements ClientInterface
 
         try {
             $provider = $this->ldap->connect(null, $username , $password);
-        } catch (ConnectionException $e) {
+        } catch ( \Adldap\Auth\BindException $e) {
             if ($this->logger) $this->logger->error(sprintf('Connection error "%s"', $e->getMessage()));
 
             /// @todo shall we log an error ?

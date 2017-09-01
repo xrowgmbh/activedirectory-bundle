@@ -119,22 +119,20 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
                     $newUserGroups = $this->getGroupsFromUser($user);
                     $currentUserGroups = $userService->loadUserGroupsOfUser($eZUser);
                     $groupsToRemove = array();
-                    var_dump($newUserGroups);
-                    var_dump($currentUserGroups);die("here");
+
                     foreach ($currentUserGroups as $currentUserGroup) {
-                        if (! array_key_exists($currentUserGroup->id, $newUserGroups)) {
+                        if (! in_array( $currentUserGroup, $newUserGroups ) ) {
                             $groupsToRemove[] = $currentUserGroup;
                         } else {
-                            unset($newUserGroups[$currentUserGroup->id]);
+                            unset($newUserGroups[$currentUserGroup->contentInfo->mainLocationId]);
                         }
-                    }
-                    foreach ($newUserGroups as $newUserGroup) {
-                        $userService->assignUserToUserGroup($repoUser, $newUserGroup);
                     }
                     foreach ($groupsToRemove as $groupToRemove) {
                         $userService->unAssignUserFromUserGroup($repoUser, $groupToRemove);
                     }
-                    
+                    foreach ($newUserGroups as $newUserGroup) {
+                        $userService->assignUserToUserGroup($repoUser, $newUserGroup);
+                    }
                     $this->repository->commit();
                 } catch (\Exception $e) {
                     $this->repository->rollback();
@@ -159,7 +157,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
         $list = $user->getGroups();
         foreach ( $list as $group) {
             $ezgroup = $this->createGroupIfNotExists($group);            
-            $groups[$ezgroup->id] = $userService->loadUserGroup($ezgroup->mainLocationId);;
+            $groups[$ezgroup->mainLocationId] = $userService->loadUserGroup($ezgroup->id);;
         }
         return $groups;
     }
@@ -203,6 +201,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
                 $locationCreateStruct
             ));
             $content = $contentService->publishVersion($draft->versionInfo);
+            return $content->versionInfo->contentInfo;
         } elseif ($result->totalCount === 1) {
             return $result->searchHits[0]->valueObject->contentInfo;
         }
