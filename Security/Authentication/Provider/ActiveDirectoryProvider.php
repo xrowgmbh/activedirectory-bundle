@@ -98,10 +98,10 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
             $apiUser = $this->repository->getUserService()->loadUserByLogin($presentedUsername . '@xrow.lan');
         } catch (\Exception $e) {
              $RepoUser = $this->userHandler->createRepoUser($user);
-             return new UserWrapped ( new User($user, $presentedUsername, $presentedPassword), $RepoUser);
+             return new UserWrapped ( new User($user, $presentedUsername . '@xrow.lan', $presentedPassword), $RepoUser);
         }
         $RepoUser = $this->userHandler->updateRepoUser($user, $apiUser);
-        return new UserWrapped( new User($user, $presentedUsername, $presentedPassword), $RepoUser );
+        return new UserWrapped( new User($user, $presentedUsername . '@xrow.lan', $presentedPassword), $RepoUser );
     }
 
     /**
@@ -133,6 +133,9 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
 
     public function authenticate(TokenInterface $token)
     {
+        if ( $token instanceof InteractiveLoginToken){
+            return $token;
+        }
         // $currentUser can either be an instance of UserInterface or just the username (e.g. during form login).
         /** @var EzUserInterface|string $currentUser */
         $currentUser = $token->getUser();
@@ -156,12 +159,14 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         if ($ADUser and $this->isValidActiveDirectoryUser($ADUser)) {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
+                $token->setAttribute( "username", $token->getUsername() . '@xrow.lan' );
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid directory user', 0, $e);
             }
         } else {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
+                $token->setAttribute( "username", $token->getUsername() . '@xrow.lan' );
             } catch (\Exception $e) {
                 if (! $UserNative) {
                     throw new BadCredentialsException('Invalid directory user', 0, $e);
@@ -173,7 +178,8 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         if (! $apiUser and $UserNative) {
             try {
                 $apiUser = $this->repository->getUserService()->loadUserByCredentials($token->getUsername(), $token->getCredentials());
-                $UserWrapped = new UserWrapped( $apiUser, $UserNative);
+                #$UserWrapped = new UserWrapped( new \eZ\Publish\Core\MVC\Symfony\Security\User( $apiUser ), $apiUser);
+                $UserWrapped = new \eZ\Publish\Core\MVC\Symfony\Security\User( $apiUser );
                 
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid credentials', 0, $e);
@@ -195,7 +201,6 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         $permissionResolver = $this->repository->getPermissionResolver();
         $UserReference = new UserReference( $UserWrapped->getAPIUser()->id );
         $permissionResolver->setCurrentUserReference( $UserReference );
-
         $providerKey = method_exists($token, 'getProviderKey') ? $token->getProviderKey() : __CLASS__;
         $interactiveToken = new InteractiveLoginToken(
             $UserWrapped,
