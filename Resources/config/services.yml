@@ -1,29 +1,24 @@
 parameters:
-    active_directory.interactive_event_listener.class: Xrow\ActiveDirectoryBundle\EventListener\InteractiveLoginListener
     active_directory.security.authentication.provider.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
     active_directory.security.user.remoteuser_handler.class: Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandler
     security.authentication.provider.dao.class: Xrow\ActiveDirectoryBundle\Security\Authentication\Provider\ActiveDirectoryProvider
     security.authentication.manager.erase_credentials: false
+    active_directory.client.class: Xrow\ActiveDirectoryBundle\Adapter\LDAP\Client
+    active_directory.user_contenttype: user
+    active_directory.user_group_contenttype: user_group
+    active_directory.default_content_language: eng-GB
+    active_directory.client.class: Xrow\ActiveDirectoryBundle\Adapter\LDAP\Client
 
 services:
-#    active_directory.security.authentication.provider:
-#        class: "%active_directory.security.authentication.provider.class%"
-#        arguments:
-#            - "@ezpublish.security.user_provider"
-#        public: false
-    active_directory.interactive_event_listener:
-        class: "%active_directory.interactive_event_listener.class%"
-        arguments: [ "@ezpublish.api.service.user" ]
-        tags:
-            - { name: kernel.event_subscriber }
-
     active_directory.remoteuser_handler:
         class: "%active_directory.security.user.remoteuser_handler.class%"
         arguments:
             - "@ezpublish.api.repository"
             -
-                user_contenttype: user
-                default_content_language: eng-GB
-                group_mapping:
-                    "CN=LTD_Intranet_Administrator": 12
-                    "CN=LTD_Intranet_CorpContentManager": 13
+                user_contenttype: "%active_directory.user_contenttype%"
+                user_group_contenttype: "%active_directory.user_group_contenttype%"
+                default_content_language: "%active_directory.default_content_language%"
+    active_directory.client:
+        class: "%active_directory.client.class%"
+        arguments:
+            - "%active_directory.settings%"

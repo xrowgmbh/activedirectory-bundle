@@ -1,5 +1,4 @@
 <?php
-
 namespace Xrow\ActiveDirectoryBundle\Adapter\ActiveDirectory;
 
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -10,8 +9,11 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class User implements UserInterface
 {
+
     protected $emailField;
+
     protected $username;
+
     protected $password;
 
     /**
@@ -23,18 +25,22 @@ class User implements UserInterface
      * @var mixed
      */
     protected $profile;
+
     /**
-     * @param array $authUserResult (nested array)
-     * @param string $emailField the name of the ldap attribute which holds the user email address
-     * @param string $login
-     * @param string $password
+     *
+     * @param array $authUserResult
+     *            (nested array)
+     * @param string $emailField
+     *            the name of the ldap attribute which holds the user email address
+     * @param string $login            
+     * @param string $password            
      *
      * @todo decide what to store of $AuthUserResult, so that it can be serialized without taking up too much space
      *       (otoh maybe this never gets serialized, and only the eZ-mvc-user does?
      *       Note that the list of attributes gotten from ladp is decided by settings for the client class...
      * @todo store the password salted and encrypted in memory instead of plaintext
      */
-    public function __construct($authUserResult, $login, $password='')
+    public function __construct($authUserResult, $login, $password = '')
     {
         $this->username = $login;
         $this->password = $password;
@@ -42,15 +48,20 @@ class User implements UserInterface
     }
 
     /**
-     * SF roles. Important: not to have this empty, otherwise SF will think this user is not an authenticated one
+     * SF roles.
+     * Important: not to have this empty, otherwise SF will think this user is not an authenticated one
+     * 
      * @return array
      */
     public function getRoles()
     {
-        return array('ROLE_USER');
+        return array(
+            'ROLE_USER'
+        );
     }
 
     /**
+     *
      * @todo throw if unset ?
      * @return string
      */
@@ -63,16 +74,17 @@ class User implements UserInterface
     {
         return $this->profile;
     }
-    
+
     /**
      * Returns the password used to authenticate the user.
+     * 
      * @return string The password
      */
     public function getPassword()
     {
         return $this->password;
     }
-    
+
     /**
      * Returns the salt that was originally used to encode the password.
      *
@@ -84,7 +96,7 @@ class User implements UserInterface
     {
         return null;
     }
-    
+
     /**
      * Returns the username used to authenticate the user.
      *
@@ -94,13 +106,12 @@ class User implements UserInterface
     {
         return $this->username;
     }
-    
-    
+
     public function getRemoteIdFromProfile()
     {
         return \Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandler::REMOTEID_PREFIX . self::getTextSID($this->profile['objectguid']);
     }
-    
+
     /**
      * Removes sensitive data from the user.
      *
@@ -108,6 +119,5 @@ class User implements UserInterface
      * the plain-text password is stored on this object.
      */
     public function eraseCredentials()
-    {
-    }
+    {}
 }

@@ -1,12 +1,13 @@
 <?php
-
 namespace Xrow\ActiveDirectoryBundle\Adapter\LDAP;
 
 interface ClientInterface
 {
+
     /**
-     * @param string $login
-     * @param string $password
+     *
+     * @param string $login            
+     * @param string $password            
      * @return Adldap\Models\User
      * @throws BadCredentialsException|AuthenticationServiceException
      */

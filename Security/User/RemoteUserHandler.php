@@ -61,7 +61,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
 
     /**
      *
-     * @param Adldap\Models\User $user          
+     * @param Adldap\Models\User $user            
      * @return \eZ\Publish\API\Repository\Values\User\User
      */
     public function createRepoUser(ActiveDirectoryUser $user)
@@ -71,7 +71,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             // $this->repository->setCurrentUser($userService->loadUser($this->settings['user_creator']));
             
             $userService = $this->repository->getUserService();
-
+            
             // the user passwords we do not store locally
             $userCreateStruct = $userService->newUserCreateStruct(
                 // is 128 bytes enough for everyone? (pun intended)
@@ -83,10 +83,9 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             $userCreateStruct->remoteId = self::REMOTEID_PREFIX . $user->getAuthIdentifier();
             
             $userGroups = $this->getGroupsFromUser($user);
-
+            
             $repoUser = $userService->createUser($userCreateStruct, $userGroups);
-   
-                        
+            
             return $repoUser;
         });
     }
@@ -94,7 +93,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
     /**
      *
      * @param Adldap\Models\User $user            
-     * @param eZ\Publish\API\Repository\Values\User\User $eZUser
+     * @param eZ\Publish\API\Repository\Values\User\User $eZUser            
      */
     public function updateRepoUser(ActiveDirectoryUser $user, $eZUser)
     {
@@ -107,21 +106,21 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
                 $contentUpdateStruct = $contentService->newContentUpdateStruct();
                 $this->setFieldValuesFromUser($user, $contentUpdateStruct);
                 $userUpdateStruct->contentUpdateStruct = $contentUpdateStruct;
-       
+                
                 // we use a transaction since there are multiple db operations
                 try {
                     $this->repository->beginTransaction();
                     
                     $repoUser = $userService->updateUser($eZUser, $userUpdateStruct);
-
+                    
                     // fix user groups assignments: first add new ones, then remove unused current ones (we can not hit 0 groups during the updating :-) )
                     // / @todo test/document what happens when we get an empty array...
                     $newUserGroups = $this->getGroupsFromUser($user);
                     $currentUserGroups = $userService->loadUserGroupsOfUser($eZUser);
                     $groupsToRemove = array();
-
+                    
                     foreach ($currentUserGroups as $currentUserGroup) {
-                        if (! in_array( $currentUserGroup, $newUserGroups ) ) {
+                        if (! in_array($currentUserGroup, $newUserGroups)) {
                             $groupsToRemove[] = $currentUserGroup;
                         } else {
                             unset($newUserGroups[$currentUserGroup->contentInfo->mainLocationId]);
@@ -137,7 +136,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
                 } catch (\Exception $e) {
                     $this->repository->rollback();
                     throw $e;
-                }                
+                }
                 return $repoUser;
             });
         }
@@ -146,8 +145,8 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
     /**
      * Load (and possibly create on the fly) all the user groups needed for this user, based on his profile.
      *
-     * @param ActiveDirectoryUser $user
-     *            
+     * @param ActiveDirectoryUser $user            
+     *
      * @return \eZ\Publish\API\Repository\Values\User\UserGroup[] indexed by group id
      */
     public function getGroupsFromUser(ActiveDirectoryUser $user)
@@ -155,12 +154,14 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
         $userService = $this->repository->getUserService();
         $groups = array();
         $list = $user->getGroups();
-        foreach ( $list as $group) {
-            $ezgroup = $this->createGroupIfNotExists($group);            
-            $groups[$ezgroup->mainLocationId] = $userService->loadUserGroup($ezgroup->id);;
+        foreach ($list as $group) {
+            $ezgroup = $this->createGroupIfNotExists($group);
+            $groups[$ezgroup->mainLocationId] = $userService->loadUserGroup($ezgroup->id);
+            ;
         }
         return $groups;
     }
+
     /**
      * Load (and possibly create on the fly) the user group needed
      *
@@ -209,15 +210,15 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
 
     /**
      *
-     * @param \Adldap\Models\User  $user
+     * @param \Adldap\Models\User $user            
      * @param \eZ\Publish\API\Repository\Values\Content\ContentCreateStruct $userCreateStruct            
      *
      * @todo allow to define simple field mappings in settings
      */
-    public function setFieldValuesFromUser( \Adldap\Models\User $user, $userCreateStruct)
+    public function setFieldValuesFromUser(\Adldap\Models\User $user, $userCreateStruct)
     {
-        $userCreateStruct->setField('first_name',  $user->getFirstName());
-        $userCreateStruct->setField('last_name',  $user->getLastName());
+        $userCreateStruct->setField('first_name', $user->getFirstName());
+        $userCreateStruct->setField('last_name', $user->getLastName());
     }
 
     /**
@@ -232,5 +233,4 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
     {
         return true;
     }
-
 }

@@ -1,5 +1,4 @@
 <?php
-
 namespace Xrow\ActiveDirectoryBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -12,18 +11,30 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  */
 class Configuration implements ConfigurationInterface
 {
+
     /**
+     *
      * {@inheritdoc}
+     *
      */
     public function getConfigTreeBuilder()
     {
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('xrow_active_directory');
-
-        // Here you should define the parameters that are allowed to
-        // configure your bundle. See the documentation linked above for
-        // more information on that topic.
-
+        $rootNode->children()
+            ->scalarNode('account_suffix')
+            ->info('The domain controllers option is an array of your LDAP hosts. You can use the either the host name or the IP address of your host.')
+            ->end()
+            ->arrayNode('domain_controllers')
+            ->info('The domain controllers option is an array of your LDAP hosts. You can use the either the host name or the IP address of your host.')
+            ->prototype('scalar')
+            ->end()
+            ->end()
+            ->scalarNode('base_dn')
+            ->info('The base distinguished name of your domain.')
+            ->end()
+            ->end();
+        
         return $treeBuilder;
     }
 }

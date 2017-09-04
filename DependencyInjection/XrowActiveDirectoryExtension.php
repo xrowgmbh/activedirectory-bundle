@@ -1,5 +1,4 @@
 <?php
-
 namespace Xrow\ActiveDirectoryBundle\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -15,20 +14,22 @@ use eZ\Bundle\EzPublishCoreBundle\DependencyInjection\Configuration\SiteAccessAw
  */
 class XrowActiveDirectoryExtension extends Extension
 {
+
     /**
+     *
      * {@inheritdoc}
+     *
      */
     public function load(array $configs, ContainerBuilder $container)
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
-
-        $container->setParameter('active_directory', $config);
+        
+        $container->setParameter('active_directory.settings', $config);
         
         $processor = new ConfigurationProcessor($container, 'active_directory');
         
-        
-        $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yml');
     }
 }

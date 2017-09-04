@@ -2,9 +2,6 @@
 
 /**
  * File containing the SecurityPass class.
- *
- * @copyright Copyright (C) eZ Systems AS. All rights reserved.
- * @license For full copyright and license information view LICENSE file distributed with this source code.
  */
 namespace Xrow\ActiveDirectoryBundle\DependencyInjection\Compiler;
 
@@ -19,24 +16,26 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 class SecurityPass implements CompilerPassInterface
 {
+
     public function process(ContainerBuilder $container)
     {
-
         $userhandlerRef = new Reference('active_directory.remoteuser_handler');
+        $clienthandlerRef = new Reference('active_directory.client');
         $configResolverRef = new Reference('ezpublish.config.resolver');
         $repositoryReference = new Reference('ezpublish.api.repository');
         
         // Override and inject the ez Platform default authentication provider https://github.com/ezsystems/ezpublish-kernel/blob/master/eZ/Bundle/EzPublishCoreBundle/DependencyInjection/Compiler/SecurityPass.php.
         $daoAuthenticationProviderDef = $container->findDefinition('security.authentication.provider.dao');
         $daoAuthenticationProviderDef->setClass(AuthenticationProvider::class);
-        #$daoAuthenticationProviderDef->addArgument($userhandlerRef);
-        $daoAuthenticationProviderDef->addMethodCall(
-            'setRepository',
-            array($repositoryReference)
-            );
-        $daoAuthenticationProviderDef->addMethodCall(
-            'setUserHandler',
-            array($userhandlerRef)
-            );
+        // $daoAuthenticationProviderDef->addArgument($userhandlerRef);
+        $daoAuthenticationProviderDef->addMethodCall('setRepository', array(
+            $repositoryReference
+        ));
+        $daoAuthenticationProviderDef->addMethodCall('setUserHandler', array(
+            $userhandlerRef
+        ));
+        $daoAuthenticationProviderDef->addMethodCall('setClient', array(
+            $clienthandlerRef
+        ));
     }
 }

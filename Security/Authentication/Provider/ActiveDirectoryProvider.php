@@ -28,6 +28,8 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
 
     private $userHandler;
 
+    private $client;
+
     const REMOTEID_PREFIX = "ActiveDirectory";
 
     /**
@@ -44,6 +46,11 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
     public function setUserHandler(RemoteUserHandlerInterface $userHandler)
     {
         $this->userHandler = $userHandler;
+    }
+
+    public function setClient(Client $client)
+    {
+        $this->client = $client;
     }
 
     public function __construct(UserProviderInterface $userProvider)
@@ -68,25 +75,6 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
             throw new AuthenticationCredentialsNotFoundException('The presented password cannot be empty.');
         }
         
-        $config = [
-            // Your account suffix, for example: jdoe@corp.acme.org
-            'account_suffix' => '@xrow.lan',
-            
-            // The domain controllers option is an array of your LDAP hosts. You can
-            // use the either the host name or the IP address of your host.
-            'domain_controllers' => [
-                'dc01.xrow.lan',
-                '192.168.0.220'
-            ],
-            
-            // The base distinguished name of your domain.
-            'base_dn' => 'dc=XROW,dc=LAN'
-        ];
-        $client = new \Adldap\Adldap();
-        $client->addProvider($config);
-        
-        $this->client = new Client($client);
-        
         // communication errors and config errors should be logged/handled by the client
         try {
             $user = $this->client->authenticateUser($presentedUsername, $presentedPassword);
@@ -95,13 +83,13 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         }
         
         try {
-            $apiUser = $this->repository->getUserService()->loadUserByLogin($presentedUsername . '@xrow.lan');
+            $apiUser = $this->repository->getUserService()->loadUserByLogin($presentedUsername . $this->client->getAccountSuffix());
         } catch (\Exception $e) {
-             $RepoUser = $this->userHandler->createRepoUser($user);
-             return new UserWrapped ( new User($user, $presentedUsername . '@xrow.lan', $presentedPassword), $RepoUser);
+            $RepoUser = $this->userHandler->createRepoUser($user);
+            return new UserWrapped(new User($user, $presentedUsername . $this->client->getAccountSuffix(), $presentedPassword), $RepoUser);
         }
         $RepoUser = $this->userHandler->updateRepoUser($user, $apiUser);
-        return new UserWrapped( new User($user, $presentedUsername . '@xrow.lan', $presentedPassword), $RepoUser );
+        return new UserWrapped(new User($user, $presentedUsername . $this->client->getAccountSuffix(), $presentedPassword), $RepoUser);
     }
 
     /**
@@ -133,7 +121,7 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
 
     public function authenticate(TokenInterface $token)
     {
-        if ( $token instanceof InteractiveLoginToken){
+        if ($token instanceof InteractiveLoginToken) {
             return $token;
         }
         // $currentUser can either be an instance of UserInterface or just the username (e.g. during form login).
@@ -142,14 +130,14 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         if ($currentUser instanceof UserInterface) {
             return $currentUser;
         }
-
+        
         try {
             $UserNative = $this->repository->getUserService()->loadUserByLogin($token->getUsername());
         } catch (NotFoundException $e) {
             $UserNative = false;
         }
         try {
-            $ADUser = $this->repository->getUserService()->loadUserByLogin($token->getUsername() . '@xrow.lan');
+            $ADUser = $this->repository->getUserService()->loadUserByLogin($token->getUsername() . $this->client->getAccountSuffix());
         } catch (NotFoundException $e) {
             $ADUser = false;
         } catch (\Exception $e) {
@@ -159,14 +147,14 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         if ($ADUser and $this->isValidActiveDirectoryUser($ADUser)) {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
-                $token->setAttribute( "username", $token->getUsername() . '@xrow.lan' );
+                $token->setAttribute("username", $token->getUsername() . $this->client->getAccountSuffix());
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid directory user', 0, $e);
             }
         } else {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
-                $token->setAttribute( "username", $token->getUsername() . '@xrow.lan' );
+                $token->setAttribute("username", $token->getUsername() . $this->client->getAccountSuffix());
             } catch (\Exception $e) {
                 if (! $UserNative) {
                     throw new BadCredentialsException('Invalid directory user', 0, $e);
@@ -178,15 +166,14 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         if (! $apiUser and $UserNative) {
             try {
                 $apiUser = $this->repository->getUserService()->loadUserByCredentials($token->getUsername(), $token->getCredentials());
-                #$UserWrapped = new UserWrapped( new \eZ\Publish\Core\MVC\Symfony\Security\User( $apiUser ), $apiUser);
-                $UserWrapped = new \eZ\Publish\Core\MVC\Symfony\Security\User( $apiUser );
-                
+                // $UserWrapped = new UserWrapped( new \eZ\Publish\Core\MVC\Symfony\Security\User( $apiUser ), $apiUser);
+                $UserWrapped = new \eZ\Publish\Core\MVC\Symfony\Security\User($apiUser);
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid credentials', 0, $e);
             }
         }
         // Can`t find the user anywhere
-        if (! $UserWrapped ) {
+        if (! $UserWrapped) {
             throw new UsernameNotFoundException('Invalid directory user', 0, $e);
         }
         
@@ -199,16 +186,10 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         
         // Finally inject current user
         $permissionResolver = $this->repository->getPermissionResolver();
-        $UserReference = new UserReference( $UserWrapped->getAPIUser()->id );
-        $permissionResolver->setCurrentUserReference( $UserReference );
+        $UserReference = new UserReference($UserWrapped->getAPIUser()->id);
+        $permissionResolver->setCurrentUserReference($UserReference);
         $providerKey = method_exists($token, 'getProviderKey') ? $token->getProviderKey() : __CLASS__;
-        $interactiveToken = new InteractiveLoginToken(
-            $UserWrapped,
-            get_class($token),
-            $token->getCredentials(),
-            $providerKey,
-            $token->getRoles()
-            );
+        $interactiveToken = new InteractiveLoginToken($UserWrapped, get_class($token), $token->getCredentials(), $providerKey, $token->getRoles());
         $interactiveToken->setAttributes($token->getAttributes());
         
         return $interactiveToken;
