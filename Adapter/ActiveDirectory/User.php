@@ -2,6 +2,7 @@
 namespace Xrow\ActiveDirectoryBundle\Adapter\ActiveDirectory;
 
 use Symfony\Component\Security\Core\User\UserInterface;
+use Xrow\ActiveDirectoryBundle\RemoteIDGenerator;
 
 /**
  * A 'generic' LDAP Remote user class.
@@ -109,7 +110,7 @@ class User implements UserInterface
 
     public function getRemoteIdFromProfile()
     {
-        return \Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandler::REMOTEID_PREFIX . self::getTextSID($this->profile['objectguid']);
+        return RemoteIDGenerator::generate( self::getTextSID($this->profile['objectguid'] ) );
     }
 
     /**

@@ -20,6 +20,7 @@ use Xrow\ActiveDirectoryBundle\Adapter\ActiveDirectory\User;
 use eZ\Publish\Core\MVC\Symfony\Security\InteractiveLoginToken;
 use eZ\Publish\Core\MVC\Symfony\Security\UserWrapped;
 use eZ\Publish\Core\Repository\Values\User\UserReference;
+use Xrow\ActiveDirectoryBundle\RemoteIDGenerator;
 
 class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implements AuthenticationProviderInterface
 {
@@ -29,8 +30,6 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
     private $userHandler;
 
     private $client;
-
-    const REMOTEID_PREFIX = "ActiveDirectory";
 
     /**
      *
@@ -112,11 +111,7 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
 
     private function isValidActiveDirectoryUser($apiUser)
     {
-        $remoteid = $apiUser->getVersionInfo()->getContentInfo()->remoteId;
-        preg_match('@^(ActiveDirectory):(.+)@i', $remoteid, $test);
-        if (isset($test[1]) and $test[1] === "ActiveDirectory") {
-            return true;
-        }
+        return RemoteIDGenerator::validate( $apiUser->getVersionInfo()->getContentInfo()->remoteId );
     }
 
     public function authenticate(TokenInterface $token)

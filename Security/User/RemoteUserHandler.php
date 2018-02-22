@@ -9,7 +9,7 @@ use eZ\Publish\API\Repository\Exceptions\NotFoundException;
 use Adldap\Models\User as ActiveDirectoryUser;
 use eZ\Publish\Core\Repository\Permission\PermissionResolver;
 use Symfony\Component\Validator\Constraints\DateTime;
-
+use Xrow\ActiveDirectoryBundle\RemoteIDGenerator;
 /**
  * A 'generic' Remote user handler class.
  *
@@ -28,8 +28,6 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
     protected $settings;
 
     protected $tempFiles = array();
-
-    const REMOTEID_PREFIX = 'ActiveDirectory:';
 
     /**
      *
@@ -80,7 +78,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             
             $this->setFieldValuesFromUser($user, $userCreateStruct);
             
-            $userCreateStruct->remoteId = self::REMOTEID_PREFIX . $user->getAuthIdentifier();
+            $userCreateStruct->remoteId = RemoteIDGenerator::generate($user->getAuthIdentifier());
             
             $userGroups = $this->getGroupsFromUser($user);
             
@@ -178,7 +176,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
         $query = new \eZ\Publish\API\Repository\Values\Content\Query();
         $criterion1 = new Criterion\Subtree($locationService->loadLocation(5)->pathString);
         $criterion2 = new Criterion\ContentTypeIdentifier("user_group");
-        $criterion3 = new Criterion\RemoteId(self::REMOTEID_PREFIX . $group->getDistinguishedName());
+        $criterion3 = new Criterion\RemoteId(RemoteIDGenerator::generate( $group->getDistinguishedName()));
         $query->filter = new Criterion\LogicalAnd(array(
             $criterion1,
             $criterion2,
@@ -189,14 +187,14 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             $contentService = $this->repository->getContentService();
             $locationService = $this->repository->getLocationService();
             $contentTypeService = $this->repository->getContentTypeService();
-            PermissionResolver::setCurrentUserReference($this->repository->getUserService()->loadUser(14));
+            $this->repository->getPermissionResolver()->setCurrentUserReference($this->repository->getUserService()->loadUser(14));
             $contentType = $contentTypeService->loadContentTypeByIdentifier("user_group");
             $contentCreateStruct = $contentService->newContentCreateStruct($contentType, 'eng-GB');
             $contentCreateStruct->setField('name', $group->getName());
-            $contentCreateStruct->remoteId = self::REMOTEID_PREFIX . $group->getDistinguishedName();
+            $contentCreateStruct->remoteId = RemoteIDGenerator::generate( $group->getDistinguishedName() );
             // instantiate a location create struct from the parent location
             $locationCreateStruct = $locationService->newLocationCreateStruct(5);
-            $locationCreateStruct->remoteId = self::REMOTEID_PREFIX . $group->getDistinguishedName();
+            $locationCreateStruct->remoteId = RemoteIDGenerator::generate( $group->getDistinguishedName() );
             // create a draft using the content and location create struct and publish it
             $draft = $contentService->createContent($contentCreateStruct, array(
                 $locationCreateStruct
