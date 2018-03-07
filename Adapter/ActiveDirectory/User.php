@@ -62,13 +62,20 @@ class User implements UserInterface
     }
 
     /**
-     *
-     * @todo throw if unset ?
-     * @return string
+     * @throws Exception if an email address can't be found.
+     * @return string email address of profile
      */
     public function getEmail()
     {
-        return $this->profile['mail'];
+        if (isset($this->profile['mail'])){
+            return $this->profile['mail'];
+        }
+        elseif (isset($this->profile['userprincipalname'])){
+            return $this->profile['userprincipalname'];
+        }
+        else{
+            throw new \Exception( "Required LDAP Attribute for email isn't found. Did try mail and userprincipalname." );
+        }
     }
 
     public function getProfile()

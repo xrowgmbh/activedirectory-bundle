@@ -80,7 +80,6 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         } catch (\Exception $e) {
             throw new BadCredentialsException('The presented username or password is invalid.');
         }
-        
         try {
             $apiUser = $this->repository->getUserService()->loadUserByLogin($presentedUsername . $this->client->getAccountSuffix());
         } catch (\Exception $e) {

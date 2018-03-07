@@ -69,11 +69,17 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             // $this->repository->setCurrentUser($userService->loadUser($this->settings['user_creator']));
             
             $userService = $this->repository->getUserService();
-            
+
+            if ($user->getEmail()){
+                $email = $user->getEmail();
+            }
+            elseif ($user->getUserPrincipalName()){
+                $email = $user->getUserPrincipalName();
+            }
             // the user passwords we do not store locally
             $userCreateStruct = $userService->newUserCreateStruct(
                 // is 128 bytes enough for everyone? (pun intended)
-                $user->getUserPrincipalName(), $user->getEmail(), bin2hex(random_bytes(128)), $this->settings['default_content_language'], $this->repository->getContentTypeService()
+                $user->getUserPrincipalName(), $email, bin2hex(random_bytes(128)), $this->settings['default_content_language'], $this->repository->getContentTypeService()
                     ->loadContentTypeByIdentifier("user"));
             
             $this->setFieldValuesFromUser($user, $userCreateStruct);
