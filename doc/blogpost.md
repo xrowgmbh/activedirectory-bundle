@@ -16,3 +16,8 @@ Learn more about Active Directory
 [![Active Directory Video](https://img.youtube.com/vi/RPzcxdiyVCM/0.jpg)](https://www.youtube.com/watch?v=RPzcxdiyVCM)
 
 Let's have a look at a sample integration
+
+
+About XROW GmbH 
+
+XROW is a solution provider for enterprise content management, e-commerce and digital processes. Founded in 2007 by Björn Dieding an experienced software expert und consultant.
