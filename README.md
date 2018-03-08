@@ -64,3 +64,9 @@ inside the domain controllers option array.
 The base distinguished name is the base distinguished name you'd like to perform operations on. An example base DN would be `DC=corp,DC=acme,DC=org`.
 
 If one is not defined, you will not retrieve any search results.
+
+## Toubleshooting
+
+### System report "Invalid directory user" during login
+
+Certain Active Directory users might be not able to authticate against the Active Directory Server. In those cases the the message "Invalid directory user" will appear. This means that the user username@account.suffix with the given password can`t authticate against teh server. Please consult the domain adminsitrator to help. You can replicate the issue using a LDAP Brwoser like http://www.ldapadmin.org/. 
