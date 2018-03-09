@@ -32,7 +32,15 @@ class Client implements ClientInterface
     public function __construct(array $settings = array())
     {
         $this->settings = $settings;
-        $this->settings['account_suffix'] = "@" . $this->settings['account_suffix'];
+        // We had issues with accounts providing either working with a suffix or prefix. So we drop the suffix if exists.
+        if(isset($this->settings['account_prefix'])){
+            $this->settings['account_prefix'] = $this->settings['account_prefix'] . "\\";
+            unset( $this->settings['account_suffix'] );
+        }
+        elseif(isset($this->settings['account_suffix'])){
+            $this->settings['account_suffix'] = "@" . $this->settings['account_suffix'];
+            unset( $this->settings['account_prefix'] );
+        }
         $this->ldap = new \Adldap\Adldap();
         $this->ldap->addProvider($this->settings);
     }
@@ -45,7 +53,10 @@ class Client implements ClientInterface
     {
         $this->logger = $logger;
     }
-
+    public function getAccountName( $username )
+    {
+        return $this->getAccountPrefix() . $username . $this->getAccountSuffix();
+    }
     /**
      * Domain Suffix
      * return string domain suffix e.g.
@@ -53,9 +64,21 @@ class Client implements ClientInterface
      */
     public function getAccountSuffix()
     {
-        return $this->settings['account_suffix'];
+        if (isset($this->settings['account_suffix'])){
+            return $this->settings['account_suffix'];
+        }
     }
-
+    /**
+     * Domain Suffix
+     * return string domain suffix e.g.
+     * @xrow.lan
+     */
+    public function getAccountPrefix()
+    {
+        if (isset($this->settings['account_prefix'])){
+            return $this->settings['account_prefix'];
+        }
+    }
     /**
      *
      * @return Adldap\Models\User
@@ -65,7 +88,7 @@ class Client implements ClientInterface
     {
         if ($this->logger)
             $this->logger->info("Looking up remote user: '$username'");
-        
+
         try {
             $provider = $this->ldap->connect(null, $username, $password);
         } catch (\Adldap\Auth\BindException $e) {

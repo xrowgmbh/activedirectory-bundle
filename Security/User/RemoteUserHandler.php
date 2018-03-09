@@ -215,14 +215,24 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
     /**
      *
      * @param \Adldap\Models\User $user            
-     * @param \eZ\Publish\API\Repository\Values\Content\ContentCreateStruct $userCreateStruct            
+     * @param \eZ\Publish\API\Repository\Values\Content\ContentCreateStruct $userCreateStruct
+     * @thows Exception if required attribute is not set or valid
      *
      * @todo allow to define simple field mappings in settings
      */
     public function setFieldValuesFromUser(\Adldap\Models\User $user, $userCreateStruct)
     {
-        $userCreateStruct->setField('first_name', $user->getFirstName());
-        $userCreateStruct->setField('last_name', $user->getLastName());
+        if($user->getFirstName()){
+            $userCreateStruct->setField('first_name', $user->getFirstName());
+        }else{
+            $userCreateStruct->setField('first_name', "Unkown firstname");
+        }
+        if($user->getLastName()){
+            $userCreateStruct->setField('last_name', $user->getLastName());
+        }else{
+            $userCreateStruct->setField('last_name', "Unkown lastname");
+        }
+
     }
 
     /**

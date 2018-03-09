@@ -22,16 +22,21 @@ class Configuration implements ConfigurationInterface
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('xrow_active_directory');
         $rootNode->children()
+            ->scalarNode('account_prefix')
+            ->info('The domain prefix as in prefix-domainname\user')
+            ->end()
             ->scalarNode('account_suffix')
-            ->info('The domain controllers option is an array of your LDAP hosts. You can use the either the host name or the IP address of your host.')
+            ->info('The domain suffix as in user@domain.suffix')
             ->end()
             ->arrayNode('domain_controllers')
+            ->isRequired()
             ->info('The domain controllers option is an array of your LDAP hosts. You can use the either the host name or the IP address of your host.')
             ->prototype('scalar')
             ->end()
             ->end()
             ->scalarNode('base_dn')
-            ->info('The base distinguished name of your domain.')
+            ->isRequired()
+            ->info('The base distinguished name of your domain. Example: DC=corp,DC=acme,DC=org')
             ->end()
             ->end();
         

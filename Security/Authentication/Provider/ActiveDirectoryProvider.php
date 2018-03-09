@@ -81,13 +81,13 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
             throw new BadCredentialsException('The presented username or password is invalid.');
         }
         try {
-            $apiUser = $this->repository->getUserService()->loadUserByLogin($presentedUsername . $this->client->getAccountSuffix());
+            $apiUser = $this->repository->getUserService()->loadUserByLogin( $user->getUserPrincipalName() );
         } catch (\Exception $e) {
             $RepoUser = $this->userHandler->createRepoUser($user);
-            return new UserWrapped(new User($user, $presentedUsername . $this->client->getAccountSuffix(), $presentedPassword), $RepoUser);
+            return new UserWrapped(new User($user,  $user->getUserPrincipalName(), $presentedPassword), $RepoUser);
         }
         $RepoUser = $this->userHandler->updateRepoUser($user, $apiUser);
-        return new UserWrapped(new User($user, $presentedUsername . $this->client->getAccountSuffix(), $presentedPassword), $RepoUser);
+        return new UserWrapped(new User($user,  $user->getUserPrincipalName(), $presentedPassword), $RepoUser);
     }
 
     /**
@@ -131,7 +131,7 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
             $UserNative = false;
         }
         try {
-            $ADUser = $this->repository->getUserService()->loadUserByLogin($token->getUsername() . $this->client->getAccountSuffix());
+            $ADUser = $this->repository->getUserService()->loadUserByLogin($this->client->getAccountName($token->getUsername()));
         } catch (NotFoundException $e) {
             $ADUser = false;
         } catch (\Exception $e) {
@@ -141,14 +141,14 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         if ($ADUser and $this->isValidActiveDirectoryUser($ADUser)) {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
-                $token->setAttribute("username", $token->getUsername() . $this->client->getAccountSuffix());
+                $token->setAttribute("username",  $this->client->getAccountName($token->getUsername()));
             } catch (\Exception $e) {
                 throw new BadCredentialsException('Invalid directory user', 0, $e);
             }
         } else {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
-                $token->setAttribute("username", $token->getUsername() . $this->client->getAccountSuffix());
+                $token->setAttribute("username", $this->client->getAccountName($token->getUsername()));
             } catch (\Exception $e) {
                 if (! $UserNative) {
                     throw new BadCredentialsException('Invalid directory user', 0, $e);
