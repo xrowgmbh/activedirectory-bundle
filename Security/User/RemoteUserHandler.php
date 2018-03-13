@@ -113,14 +113,12 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
                 
                 // we use a transaction since there are multiple db operations
                 try {
-                    $this->repository->beginTransaction();
-                    
                     $repoUser = $userService->updateUser($eZUser, $userUpdateStruct);
                     
                     // fix user groups assignments: first add new ones, then remove unused current ones (we can not hit 0 groups during the updating :-) )
                     // / @todo test/document what happens when we get an empty array...
-                    $newUserGroups = $this->getGroupsFromUser($user);
-                    $currentUserGroups = $userService->loadUserGroupsOfUser($eZUser);
+                    $newUserGroups = $this->getGroupsFromADUser($user);
+                    $currentUserGroups = $userService->loadUserGroupsOfUser($eZUser, 0, 1000 );
                     $groupsToRemove = array();
                     
                     foreach ($currentUserGroups as $currentUserGroup) {
@@ -130,6 +128,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
                             unset($newUserGroups[$currentUserGroup->contentInfo->mainLocationId]);
                         }
                     }
+                    $this->repository->beginTransaction();
                     foreach ($groupsToRemove as $groupToRemove) {
                         $userService->unAssignUserFromUserGroup($repoUser, $groupToRemove);
                     }
@@ -145,7 +144,6 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             });
         }
     }
-
     /**
      * Load (and possibly create on the fly) all the user groups needed for this user, based on his profile.
      *
@@ -153,7 +151,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
      *
      * @return \eZ\Publish\API\Repository\Values\User\UserGroup[] indexed by group id
      */
-    public function getGroupsFromUser(ActiveDirectoryUser $user)
+    public function getGroupsFromADUser(ActiveDirectoryUser $user)
     {
         $userService = $this->repository->getUserService();
         $groups = array();
@@ -161,7 +159,6 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
         foreach ($list as $group) {
             $ezgroup = $this->createGroupIfNotExists($group);
             $groups[$ezgroup->mainLocationId] = $userService->loadUserGroup($ezgroup->id);
-            ;
         }
         return $groups;
     }
