@@ -2,7 +2,15 @@
 	"name" : "xrow/activedirectory-bundle",
 	"type" : "symfony-bundle",
 	"homepage" : "https://www.xrow.com",
-	"license" : "Apache License 2.0",
+	"authors": [
+        {
+            "name": "Björn Dieding",
+            "email": "bjoern@xrow.de",
+            "homepage": "http://www.xrow.com",
+            "role": "Manager"
+        }
+    ]
+	"license" : "Apache-2.0",
 	"require" : {
 		"php" : "~5.6|~7.0",
 		"ezsystems/ezplatform" : "~1.0|~2.0",
