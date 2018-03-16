@@ -13,7 +13,7 @@ use Xrow\ActiveDirectoryBundle\RemoteIDGenerator;
 /**
  * A 'generic' Remote user handler class.
  *
- * For the common cases, you will need to implement only getGroupsFromUser() and setFieldValuesFromProfile().
+ * For the common cases, you will need to implement only getGroupsFromADUser() and setFieldValuesFromProfile().
  * But you can subclass more methods for more complex scenarios :-)
  *
  * It handles
@@ -86,7 +86,7 @@ class RemoteUserHandler implements RemoteUserHandlerInterface
             
             $userCreateStruct->remoteId = RemoteIDGenerator::generate($user->getAuthIdentifier());
             
-            $userGroups = $this->getGroupsFromUser($user);
+            $userGroups = $this->getGroupsFromADUser($user);
             
             $repoUser = $userService->createUser($userCreateStruct, $userGroups);
             
