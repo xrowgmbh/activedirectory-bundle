@@ -70,3 +70,7 @@ If one is not defined, you will not retrieve any search results.
 ### System report "Invalid directory user" during login
 
 Certain Active Directory users might be not able to authticate against the Active Directory Server. In those cases the the message "Invalid directory user" will appear. This means that the user username@account.suffix with the given password can`t authticate against teh server. Please consult the domain adminsitrator to help. You can replicate the issue using a LDAP Brwoser like http://www.ldapadmin.org/. 
+
+### Need of adding a second Active Directory
+
+In case you need to add a second active directory struture we recommend you to build a forest(https://en.wikipedia.org/wiki/Active_Directory#Forests,_trees_and_domains).
