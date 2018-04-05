@@ -1,6 +1,6 @@
 {
 	"name" : "xrow/activedirectory-bundle",
-	"type" : "symfony-bundle",
+	"type" : "ezplatform-bundle",
 	"homepage" : "https://www.xrow.com",
 	"authors": [
         {
