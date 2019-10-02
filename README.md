@@ -37,7 +37,7 @@ xrow_active_directory:
     base_dn: "dc=XROW,dc=LAN"
 ```
 
-## Working with Active Diretory user groups
+## Working with Active Directory user groups
 
 Once the a new active directory did try to authenticate against ezplatform. All of the user groups are available from the cms backend. You can now assign (Admin Panel->Roles) the eZ Platform security policy Administrator to the Active Directory group Administrators (Admin Panel->Users->Administators). Beware the only difference between eZ Platform user groups and Active Directory user groups is a special remote_id that is not visible from the cms backend. Deleted Active Directory items will appear again once a user authenticates again with the platform.
 
@@ -46,7 +46,7 @@ Once the a new active directory did try to authenticate against ezplatform. All 
 ### Account Suffix (required)
 
 The account suffix option is the suffix of your user accounts in AD. For example, if your domain DN is `DC=corp,DC=acme,DC=org`,
-then your account suffix would be `corp.acme.org`. This is then appended to then end of your user accounts on authentication.
+then your account suffix would be `corp.acme.org`. This is then appended to the end of your user accounts on authentication.
 
 For example, if you're binding as a user, and your username is `jdoe`, then Adldap would try to authenticate with
 your server as `jdoe@corp.acme.org`.
@@ -54,7 +54,7 @@ your server as `jdoe@corp.acme.org`.
 ### Domain Controllers (required)
 
 The domain controllers option is an array of servers located on your network that serve Active Directory. You insert as many
-servers or as little as you'd like depending on your forest (with the minimum of one of course).
+servers or as few as you'd like depending on your forest (with the minimum of one of course).
 
 For example, if the server name that hosts AD on my network is named `ACME-DC01`, then I would insert `['ACME-DC01.corp.acme.org']`
 inside the domain controllers option array.
@@ -69,8 +69,8 @@ If one is not defined, you will not retrieve any search results.
 
 ### System report "Invalid directory user" during login
 
-Certain Active Directory users might be not able to authticate against the Active Directory Server. In those cases the the message "Invalid directory user" will appear. This means that the user username@account.suffix with the given password can`t authticate against teh server. Please consult the domain adminsitrator to help. You can replicate the issue using a LDAP Brwoser like http://www.ldapadmin.org/. 
+Certain Active Directory users might be not able to authenticate against the Active Directory Server. In those cases the message "Invalid directory user" will appear. This means that the user username@account.suffix with the given password can`t authenticate against teh server. Please consult the domain adminsitrator to help. You can replicate the issue using a LDAP browser like [LDAP Admin](http://www.ldapadmin.org).
 
 ### Need of adding a second Active Directory
 
-In case you need to add a second active directory struture we recommend you to build a forest(https://en.wikipedia.org/wiki/Active_Directory#Forests,_trees_and_domains).
+In case you need to add a second active directory structure we recommend you to build a [forest](https://en.wikipedia.org/wiki/Active_Directory#Forests,_trees_and_domains).
