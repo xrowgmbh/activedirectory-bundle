@@ -37,5 +37,8 @@ class SecurityPass implements CompilerPassInterface
         $daoAuthenticationProviderDef->addMethodCall('setClient', array(
             $clienthandlerRef
         ));
+        $daoAuthenticationProviderDef->addMethodCall('setTranslator', [
+            new Reference('translator')
+        ]);
     }
 }

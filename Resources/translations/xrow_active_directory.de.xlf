@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:jms="urn:jms:translation" version="1.2">
+  <file source-language="en" target-language="de" datatype="plaintext" original="not.available">
+    <header>
+      <tool tool-id="JMSTranslationBundle" tool-name="JMSTranslationBundle" tool-version="1.1.0-DEV"/>
+      <note>The source node in most cases contains the sample message as written by the developer. If it looks like a dot-delimitted string such as "form.label.firstname", then the developer has not provided a default message.</note>
+    </header>
+    <body>
+      <trans-unit id="3480a9217546810ac4831907bee667fc747a356f" resname="client.failure">
+        <source>The presented username or password is invalid</source>
+        <target state="translated">Der Benutzername oder das Passwort ist ungültig</target>
+        <note>key: client.failure</note>
+      </trans-unit>
+      <trans-unit id="17cc946eed76f486a52f07d367b26edc7b1c0a78" resname="credentials.changed">
+        <source>The credentials were changed from another session</source>
+        <target state="translated">Die Anmeldedaten wurden von einer anderen Sitzung geändert.</target>
+        <note>key: credentials.changed</note>
+      </trans-unit>
+      <trans-unit id="263cea48c191a7e37e8e97d650868c060c98eeef" resname="credentials.invalid">
+        <source>Invalid credentials</source>
+        <target state="translated">Ungültige Anmeldedaten</target>
+        <note>key: credentials.invalid</note>
+      </trans-unit>
+      <trans-unit id="6d043e9d7f6807f45b8f32aacebedbcf538d27fe" resname="password.empty">
+        <source>The presented password cannot be empty</source>
+        <target state="translated">Das Passwort darf nicht leer sein.</target>
+        <note>key: password.empty</note>
+      </trans-unit>
+      <trans-unit id="4ab4f7978991365136c924699b7a980f49b66d20" resname="user.invalid">
+        <source>Invalid directory user</source>
+        <target state="translated">Ungültiger Directory-Benutzer</target>
+        <note>key: user.invalid</note>
+      </trans-unit>
+      <trans-unit id="2691ec1c3a813f0721812d6f77e3c6f25142bed5" resname="username.empty">
+        <source>The presented username cannot be empty</source>
+        <target state="translated">Der Benutzername darf nicht leer sein.</target>
+        <note>key: username.empty</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

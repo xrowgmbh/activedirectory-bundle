@@ -3,16 +3,12 @@ namespace Xrow\ActiveDirectoryBundle\Security\Authentication\Provider;
 
 use Symfony\Component\Security\Core\Authentication\Provider\AuthenticationProviderInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
-use Symfony\Component\Security\Core\Exception\AuthenticationException;
-use Symfony\Component\Security\Core\Exception\NonceExpiredException;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use eZ\Publish\Core\MVC\Symfony\Security\Authentication\RepositoryAuthenticationProvider;
 use eZ\Publish\API\Repository\Repository;
-use Assetic\Exception\Exception;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Component\Ldap\LdapClient;
 use Xrow\ActiveDirectoryBundle\Adapter\LDAP\Client;
 use Xrow\ActiveDirectoryBundle\Security\User\RemoteUserHandlerInterface;
 use eZ\Publish\Core\Base\Exceptions\NotFoundException;
@@ -20,22 +16,25 @@ use Xrow\ActiveDirectoryBundle\Adapter\ActiveDirectory\User;
 use eZ\Publish\Core\MVC\Symfony\Security\InteractiveLoginToken;
 use eZ\Publish\Core\MVC\Symfony\Security\UserWrapped;
 use eZ\Publish\Core\Repository\Values\User\UserReference;
+use Symfony\Component\Translation\TranslatorInterface;
 use Xrow\ActiveDirectoryBundle\RemoteIDGenerator;
 
 class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implements AuthenticationProviderInterface
 {
-
+    /*** @var UserProviderInterface */
     private $userProvider;
 
+    /*** @var RemoteUserHandlerInterface */
     private $userHandler;
 
+    /*** @var Client */
     private $client;
 
-    /**
-     *
-     * @var \eZ\Publish\API\Repository\Repository
-     */
+    /*** @var Repository */
     private $repository;
+
+    /*** @var TranslatorInterface */
+    private $translator;
 
     public function setRepository(Repository $repository)
     {
@@ -50,6 +49,11 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
     public function setClient(Client $client)
     {
         $this->client = $client;
+    }
+
+    public function setTranslator(TranslatorInterface $translator)
+    {
+        $this->translator = $translator;
     }
 
     public function __construct(UserProviderInterface $userProvider)
@@ -67,25 +71,36 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         $currentUser = $token->getUser();
         
         if ('' === ($presentedUsername = $token->getUsername())) {
-            throw new AuthenticationCredentialsNotFoundException('The presented username cannot be empty.');
+            throw new AuthenticationCredentialsNotFoundException(
+                /** @Desc("The presented username cannot be empty") */
+                $this->translator->trans('username.empty', [], 'xrow_active_directory')
+            );
         }
         
         if ('' === ($presentedPassword = $token->getCredentials())) {
-            throw new AuthenticationCredentialsNotFoundException('The presented password cannot be empty.');
+            throw new AuthenticationCredentialsNotFoundException(
+                /** @Desc("The presented password cannot be empty") */
+                $this->translator->trans('password.empty', [], 'xrow_active_directory')
+            );
         }
         
         // communication errors and config errors should be logged/handled by the client
         try {
             $user = $this->client->authenticateUser($presentedUsername, $presentedPassword);
         } catch (\Exception $e) {
-            throw new BadCredentialsException('The presented username or password is invalid.');
+            throw new BadCredentialsException(
+                /** @Desc("The presented username or password is invalid") */
+                $this->translator->trans('client.failure', [], 'xrow_active_directory')
+            );
         }
+
         try {
             $apiUser = $this->repository->getUserService()->loadUserByLogin( $user->getUserPrincipalName() );
         } catch (\Exception $e) {
             $RepoUser = $this->userHandler->createRepoUser($user);
             return new UserWrapped(new User($user,  $user->getUserPrincipalName(), $presentedPassword), $RepoUser);
         }
+
         $RepoUser = $this->userHandler->updateRepoUser($user, $apiUser);
         return new UserWrapped(new User($user,  $user->getUserPrincipalName(), $presentedPassword), $RepoUser);
     }
@@ -130,6 +145,7 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         } catch (NotFoundException $e) {
             $UserNative = false;
         }
+
         try {
             $ADUser = $this->repository->getUserService()->loadUserByLogin($this->client->getAccountName($token->getUsername()));
         } catch (NotFoundException $e) {
@@ -137,13 +153,17 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         } catch (\Exception $e) {
             $ADUser = false;
         }
+
         $apiUser = false;
         if ($ADUser and $this->isValidActiveDirectoryUser($ADUser)) {
             try {
                 $UserWrapped = $this->tryActiveDirectoryImport($token);
                 $token->setAttribute("username",  $this->client->getAccountName($token->getUsername()));
             } catch (\Exception $e) {
-                throw new BadCredentialsException('Invalid directory user', 0, $e);
+                throw new BadCredentialsException(
+                    /** @Desc("Invalid directory user") */
+                    $this->translator->trans('user.invalid', [], 'xrow_active_directory'), 0, $e
+                );
             }
         } else {
             try {
@@ -151,11 +171,15 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
                 $token->setAttribute("username", $this->client->getAccountName($token->getUsername()));
             } catch (\Exception $e) {
                 if (! $UserNative) {
-                    throw new BadCredentialsException('Invalid directory user', 0, $e);
+                    throw new BadCredentialsException(
+                        /** @Desc("Invalid directory user") */
+                        $this->translator->trans('user.invalid', [], 'xrow_active_directory'), 0, $e
+                    );
                 }
                 // go on with native users
             }
         }
+
         // Try normal login
         if (! $apiUser and $UserNative) {
             try {
@@ -163,17 +187,27 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
                 // $UserWrapped = new UserWrapped( new \eZ\Publish\Core\MVC\Symfony\Security\User( $apiUser ), $apiUser);
                 $UserWrapped = new \eZ\Publish\Core\MVC\Symfony\Security\User($apiUser);
             } catch (\Exception $e) {
-                throw new BadCredentialsException('Invalid credentials', 0, $e);
+                throw new BadCredentialsException(
+                    /** @Desc("Invalid credentials") */
+                    $this->translator->trans('credentials.invalid', [], 'xrow_active_directory'), 0, $e
+                );
             }
         }
+
         // Can`t find the user anywhere
         if (! $UserWrapped) {
-            throw new UsernameNotFoundException('Invalid directory user', 0, $e);
+            throw new UsernameNotFoundException(
+                /** @Desc("Invalid directory user") */
+                $this->translator->trans('user.invalid', [], 'xrow_active_directory'), 0, $e
+            );
         }
         
         if ($currentUser instanceof UserInterface) {
             if ($currentUser->getAPIUser()->passwordHash !== $user->getAPIUser()->passwordHash) {
-                throw new BadCredentialsException('The credentials were changed from another session.');
+                throw new BadCredentialsException(
+                    /** @Desc("The credentials were changed from another session") */
+                    $this->translator->trans('credentials.changed', [], 'xrow_active_directory'), 0, $e
+                );
             }
             $apiUser = $currentUser->getAPIUser();
         }
