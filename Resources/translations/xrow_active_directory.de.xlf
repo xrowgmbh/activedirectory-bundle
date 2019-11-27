@@ -26,6 +26,11 @@
         <target state="translated">Das Passwort darf nicht leer sein.</target>
         <note>key: password.empty</note>
       </trans-unit>
+      <trans-unit id="202d74f9b0635bd32aec05dacd4008ccf78e8f77" resname="user.disabled">
+        <source>User account is disabled</source>
+        <target>Benutzerkonto ist deaktiviert</target>
+        <note>key: user.disabled</note>
+      </trans-unit>
       <trans-unit id="4ab4f7978991365136c924699b7a980f49b66d20" resname="user.invalid">
         <source>Invalid directory user</source>
         <target state="translated">Ungültiger Directory-Benutzer</target>

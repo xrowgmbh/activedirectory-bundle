@@ -7,6 +7,7 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use eZ\Publish\Core\MVC\Symfony\Security\Authentication\RepositoryAuthenticationProvider;
 use eZ\Publish\API\Repository\Repository;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
+use Symfony\Component\Security\Core\Exception\DisabledException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Xrow\ActiveDirectoryBundle\Adapter\LDAP\Client;
@@ -142,6 +143,12 @@ class ActiveDirectoryProvider extends RepositoryAuthenticationProvider implement
         
         try {
             $UserNative = $this->repository->getUserService()->loadUserByLogin($token->getUsername());
+            if (!$UserNative->enabled) {
+                throw new DisabledException(
+                    /** @Desc("User account is disabled") */
+                    $this->translator->trans('user.disabled', [], 'xrow_active_directory')
+                );
+            }
         } catch (NotFoundException $e) {
             $UserNative = false;
         }
